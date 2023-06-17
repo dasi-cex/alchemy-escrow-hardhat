@@ -1,0 +1,9 @@
+{
+  "hosting": [
+    {
+      "target": "escrow-hardhat",
+      "source": ".",
+      "frameworksBackend": {}
+    }
+  ]
+}

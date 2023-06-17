@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "alchemy-escrow-hardhat": {
+      "hosting": {
+        "escrow-hardhat": [
+          "alchemy-escrow-hardhat"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "alchemy-escrow-hardhat"
+  }
+}

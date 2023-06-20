@@ -1,3 +1,12 @@
 <div class="content-container">
-  <p>existing-contract works!</p>
+  <h1>Existing Contract</h1>
+  <div *ngIf="(hardhatService.existingContractProperties$ | async) as contractProperties" class="contract-properties">
+    <div class="contract-property"><b>Arbiter: </b> {{contractProperties.arbiter}}</div>
+    <div class="contract-property"><b>Beneficiary: </b> {{contractProperties.beneficiary}}</div>
+    <div class="contract-property"><b>Depositor: </b> {{contractProperties.depositor}}</div>
+    <div class="contract-property"><b>Amount Escrowed: </b> {{contractProperties.value}} ETH</div>
+  </div>
+  <div class="no-contract-deployed-message" *ngIf="!(hardhatService.existingContractProperties$ | async)">
+    <p>No contract deployed. Create a new contract using the New Contract Form to continue.</p>
+  </div>
 </div>

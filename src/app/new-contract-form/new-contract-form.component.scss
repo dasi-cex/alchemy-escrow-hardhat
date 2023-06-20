@@ -3,7 +3,7 @@
 .content-container {
   @include mat.elevation(2);
   background-color: white;
-  min-width: 320px;
+  width: 340px;
   min-height: 500px;
   padding: 16px;
 }

@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, Validators } from '@angular/forms';
 import { HardhatService } from '../services/hardhat.service';
 import { Observable, from, map, switchMap, take, tap } from 'rxjs';
+import { BigNumber, ethers } from 'ethers';
 
 @Component({
   selector: 'app-new-contract-form',
@@ -11,8 +12,8 @@ import { Observable, from, map, switchMap, take, tap } from 'rxjs';
 export class NewContractFormComponent implements OnInit {
   
   contractForm = this.fb.group({
-    arbiterAddress: ['', [Validators.required]],
-    beneficiaryAddress: ['', [Validators.required]],
+    arbiterAccount: ['', [Validators.required]],
+    beneficiaryAccount: ['', [Validators.required]],
     depositAmount: [0, [Validators.required, Validators.min(1)]]
   });
 
@@ -31,11 +32,18 @@ export class NewContractFormComponent implements OnInit {
 
   onSubmit() {
     console.log('Form values', this.contractForm.value);
+    const weiValue = ethers.utils.parseEther(this.depositAmount.value.toString());
+    console.log('wei value', weiValue);
+    this.hardhatService.deployContract(this.arbiterAccount.value, this.beneficiaryAccount.value, weiValue)
+      .subscribe(transactionReceipt => {
+        console.log('Transaction successfully deployed!', transactionReceipt);
+
+      })
   }
 
-  get arbiterAddress() {return this.contractForm.value.arbiterAddress}
-  get beneficiaryAddress() {return this.contractForm.value.beneficiaryAddress}
-  get depositAmount() {return this.contractForm.value.depositAmount}
+  get arbiterAccount() {return this.contractForm.get('arbiterAccount') as AbstractControl<string>}
+  get beneficiaryAccount() {return this.contractForm.get('beneficiaryAccount') as AbstractControl<string>}
+  get depositAmount() {return this.contractForm.get('depositAmount') as AbstractControl<number>}
 
 
 }

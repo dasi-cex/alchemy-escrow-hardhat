@@ -1,0 +1,46 @@
+.brand-container {
+  min-width: 190px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand-container:hover {
+  cursor: pointer;
+}
+
+.content {
+  background-color: lightgray;
+  padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.contract-components {
+  padding: 16px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 64px;
+}
+
+.account-components {
+  width: 100%;
+  max-width: 800px;
+}
+
+
+@media (max-width: 800px) {
+
+  .contract-components {
+    gap: 16px;
+  }
+
+  .account-components {
+    width: auto;
+  }
+}

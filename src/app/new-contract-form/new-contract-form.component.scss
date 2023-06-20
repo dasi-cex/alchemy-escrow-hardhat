@@ -1,0 +1,19 @@
+@use '@angular/material' as mat;
+
+.content-container {
+  @include mat.elevation(2);
+  background-color: white;
+  min-width: 320px;
+  min-height: 500px;
+  padding: 16px;
+}
+
+.contract-form {
+  display: flex;
+  flex-direction: column;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}

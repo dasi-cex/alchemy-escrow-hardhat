@@ -1,5 +1,18 @@
-<h1>Escrow Hardhat Test Site</h1>
-
+<mat-toolbar color="primary">
+  <div class="brand-container" routerLink="/">
+    <mat-icon>design_services</mat-icon>
+    <span>Escrow Hardhat</span>
+  </div>
+</mat-toolbar>
+<div class="content">
+  <div class="contract-components">
+    <app-new-contract-form></app-new-contract-form>
+    <app-existing-contract></app-existing-contract>
+  </div>
+  <div class="account-components">
+    <app-account-info></app-account-info>
+  </div>
+</div>
 
 
 <router-outlet></router-outlet>

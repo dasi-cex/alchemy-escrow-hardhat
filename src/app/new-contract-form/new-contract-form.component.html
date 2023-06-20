@@ -1,0 +1,23 @@
+<div class="content-container">
+  <h1>New Contract Form</h1>
+  <div class="contract-form">
+    <form [formGroup]="contractForm" action="">
+      <mat-form-field>
+        <mat-label>Arbiter Address</mat-label>
+        <input matInput formControlName="arbiterAddress">
+        <mat-error>Cannot be blank.</mat-error>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Beneficiary Address</mat-label>
+        <input matInput formControlName="beneficiaryAddress">
+        <mat-error>Cannot be blank.</mat-error>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Deposit Amount</mat-label>
+        <input matInput type="number" formControlName="depositAmount">
+        <mat-error>Must be greater than zero.</mat-error>
+      </mat-form-field>
+    </form>
+    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="contractForm.invalid">Submit</button>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 import { Injectable, NgZone, signal } from '@angular/core';
 import detectEthereumProvider from '@metamask/detect-provider'
 import { BigNumber, ethers } from 'ethers';
-import { Observable, Subject, catchError, combineLatest, from, map, shareReplay, switchMap, take, tap, throwError } from 'rxjs';
+import { Observable, ReplaySubject, catchError, combineLatest, from, map, shareReplay, switchMap, take, tap, throwError, withLatestFrom } from 'rxjs';
 import Escrow from '../artifacts/contracts/Escrow.sol/Escrow.json';
 import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 
@@ -11,7 +11,9 @@ import { ContractProperties } from 'shared-models/contracts/contract-properties.
 export class HardhatService {
 
   connectedAddress$ = signal<string>('');
-  existingContractProperties$: Subject<ContractProperties> = new Subject();
+  existingContractProperties$: ReplaySubject<ContractProperties> = new ReplaySubject(1); // Using ReplaySubject(1) to initialize with no value and also ensure withLatestFrom below provides a value
+  escrowApproved$ = signal<boolean>(false);
+  escrowApprovalProcessing$ = signal<boolean>(false);
 
 
   constructor(
@@ -34,13 +36,43 @@ export class HardhatService {
           return contract.deployTransaction.wait();
         }),
         map(transactionReceipt => {
-          console.log('Transaction deployed to:', transactionReceipt.contractAddress);
+          console.log('Contract deployed to:', transactionReceipt.transactionHash);
           this.setContractProperties(transactionReceipt.contractAddress);
           return transactionReceipt;
         }),
         shareReplay(),
         catchError(error => {
           console.log('Error deploying contract', error);
+          return throwError(() => new Error(error));
+        })
+      )
+  }
+
+  approveEscrowTransfer(): Observable<ethers.providers.TransactionReceipt> {
+    this.escrowApprovalProcessing$.set(true);
+    return from(detectEthereumProvider())
+      .pipe(
+        withLatestFrom(this.existingContractProperties$),
+        take(1),
+        switchMap(([metamaskProvider, contractProperties]) => {
+          console.log('Processing approve escrow transfer with these contract properties', contractProperties);
+          const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
+          const contract = new ethers.Contract(contractProperties.address, Escrow.abi, ethersProvider.getSigner());
+          this.monitorEscrowApproval(contract);
+          const approveTx = contract['approve'].call() as Promise<ethers.providers.TransactionResponse>;
+          return approveTx;
+        }),
+        switchMap(approveTx => {
+          return approveTx.wait();
+        }),
+        map(transactionReceipt => {
+          console.log('Transaction mined with hash:', transactionReceipt.transactionHash);
+          return transactionReceipt;
+        }),
+        shareReplay(),
+        catchError(error => {
+          console.log('Error deploying contract', error);
+          this.escrowApprovalProcessing$.set(false);
           return throwError(() => new Error(error));
         })
       )
@@ -66,9 +98,11 @@ export class HardhatService {
             arbiter,
             beneficiary,
             depositor,
-            value: valueInEth
+            value: valueInEth,
+            address: contractAddress
           }
           console.log('Fetched these contract properties', contractProperties);
+          this.existingContractProperties$.next(contractProperties);
           this.existingContractProperties$.next(contractProperties);
         }),
         shareReplay(),
@@ -85,7 +119,7 @@ export class HardhatService {
       .pipe(
         switchMap(metamaskProvider => {
           const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
-          this.monitorProviderChanges(metamaskProvider, ethersProvider);
+          this.monitorProviderChanges(metamaskProvider);
           return this.requestProviderAccounts(ethersProvider);
         }),
         tap(accounts => {
@@ -101,7 +135,7 @@ export class HardhatService {
   }
 
   // Initialize the listener for changes to the provider account
-  private monitorProviderChanges(metamaskProvider: any, ethersProvider: ethers.providers.Web3Provider) {
+  private monitorProviderChanges(metamaskProvider: any) {
     metamaskProvider?.on('accountsChanged', (accounts: string[]) => {
       // Running this inside of ngZone because otherwise the change detection isn't triggered on observable update
       this.ngZone.run(() => {
@@ -121,6 +155,16 @@ export class HardhatService {
   private initializeCurrentAccount(accounts: string[]) {
     this.connectedAddress$.set(accounts[0]); // Update the accounts
     console.log('Initial connected address is: ', this.connectedAddress$());
+  }
+
+  private monitorEscrowApproval(contract: ethers.Contract) {
+    contract.on('Approved', (balance: number) => {
+      this.ngZone.run(() => {
+        this.escrowApprovalProcessing$.set(false);
+        this.escrowApproved$.set(true);
+        console.log('Contract emitted the Approved event!', balance);
+      })
+    });
   }
 
 }

@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, Validators } from '@angular/forms';
 import { HardhatService } from '../services/hardhat.service';
-import { Observable, from, map, switchMap, take, tap } from 'rxjs';
-import { BigNumber, ethers } from 'ethers';
+import { Observable, take } from 'rxjs';
+import { ethers } from 'ethers';
 
 @Component({
   selector: 'app-new-contract-form',
@@ -19,7 +19,6 @@ export class NewContractFormComponent implements OnInit {
 
   currentWalletAddres!: Observable<string>;
 
-  
   constructor(
     private fb: FormBuilder,
     private hardhatService: HardhatService
@@ -29,12 +28,12 @@ export class NewContractFormComponent implements OnInit {
     
   }
 
-
   onSubmit() {
     console.log('Form values', this.contractForm.value);
     const weiValue = ethers.utils.parseEther(this.depositAmount.value.toString());
     console.log('wei value', weiValue);
     this.hardhatService.deployContract(this.arbiterAccount.value, this.beneficiaryAccount.value, weiValue)
+      .pipe(take(1))
       .subscribe(transactionReceipt => {
         console.log('Transaction successfully deployed!', transactionReceipt);
 

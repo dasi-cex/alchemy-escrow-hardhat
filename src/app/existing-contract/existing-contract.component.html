@@ -5,8 +5,17 @@
     <div class="contract-property"><b>Beneficiary: </b> {{contractProperties.beneficiary}}</div>
     <div class="contract-property"><b>Depositor: </b> {{contractProperties.depositor}}</div>
     <div class="contract-property"><b>Amount Escrowed: </b> {{contractProperties.value}} ETH</div>
+    <div class="contract-property"><b>Contract Address: </b> {{contractProperties.address}}</div>
+    <button *ngIf="!hardhatService.escrowApproved$() && !hardhatService.escrowApprovalProcessing$()" class="approve-button" mat-raised-button color="accent" (click)="onApprove()">Approve</button>
+    <div *ngIf="hardhatService.escrowApprovalProcessing$()" class="approval-processing-message">
+      <mat-spinner></mat-spinner>
+      Approval processing...
+    </div>
+    <div *ngIf="hardhatService.escrowApproved$()" class="escrow-approved-message">
+      Escrow Approved!
+    </div>
   </div>
-  <div class="no-contract-deployed-message" *ngIf="!(hardhatService.existingContractProperties$ | async)">
+  <div *ngIf="!(hardhatService.existingContractProperties$ | async)" class="no-contract-deployed-message" >
     <p>No contract deployed. Create a new contract using the New Contract Form to continue.</p>
   </div>
 </div>

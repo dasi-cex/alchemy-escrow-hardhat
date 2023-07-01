@@ -6,16 +6,19 @@
     <div class="contract-property"><b>Depositor: </b> {{contractProperties.depositor}}</div>
     <div class="contract-property"><b>Amount Escrowed: </b> {{contractProperties.value}} ETH</div>
     <div class="contract-property"><b>Contract Address: </b> {{contractProperties.address}}</div>
-    <button *ngIf="!hardhatService.escrowApproved$() && !hardhatService.escrowApprovalProcessing$()" class="approve-button" mat-raised-button color="accent" (click)="onApprove()">Approve</button>
-    <div *ngIf="hardhatService.escrowApprovalProcessing$()" class="approval-processing-message">
+    <button *ngIf="!hardhatService.approveEscrowSuccessful$() && !hardhatService.approveEscrowProcessing$()" class="approve-button" mat-raised-button color="accent" (click)="onApprove()">Approve</button>
+    <div *ngIf="hardhatService.approveEscrowProcessing$()" class="approve-escrow-processing-message">
       <mat-spinner></mat-spinner>
       Approval processing...
     </div>
-    <div *ngIf="hardhatService.escrowApproved$()" class="escrow-approved-message">
+    <div *ngIf="hardhatService.approveEscrowSuccessful$()" class="approve-escrow-successful-message">
       Escrow Approved!
     </div>
   </div>
   <div *ngIf="!(hardhatService.existingContractProperties$ | async)" class="no-contract-deployed-message" >
     <p>No contract deployed. Create a new contract using the New Contract Form to continue.</p>
+  </div>
+  <div *ngIf="hardhatService.approveEscrowError$()" class="approve-escrow-error-message" >
+    {{ hardhatService.approveEscrowError$() }}
   </div>
 </div>

@@ -11,9 +11,33 @@
 .contract-form {
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
 form {
   display: flex;
   flex-direction: column;
+}
+
+.deploy-contract-processing-message {
+  align-self: center;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.deploy-contract-successful-message {
+  color: green;
+  text-align: center;
+  font-size: 1.2em;
+  padding: 4px;
+}
+
+.deploy-contract-error-message {
+  margin-top: 8px;
+  color: red;
+  font-size: 1.2em;
+  text-align: center;
 }

@@ -18,6 +18,23 @@
         <mat-error>Must be greater than zero.</mat-error>
       </mat-form-field>
     </form>
-    <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="contractForm.invalid">Submit</button>
+    <button 
+      *ngIf="!hardhatService.deployContractProcessing$() && !hardhatService.deployContractSuccessful$()"
+      mat-raised-button 
+      color="primary" 
+      (click)="onSubmit()" 
+      [disabled]="contractForm.invalid || hardhatService.deployContractSuccessful$()"
+      >Submit</button>
+    <div *ngIf="hardhatService.deployContractProcessing$()" class="deploy-contract-processing-message">
+      <mat-spinner></mat-spinner>
+      Deploying contract...
+    </div>
+    <div *ngIf="hardhatService.deployContractSuccessful$()" class="deploy-contract-successful-message">
+      Contract Deployed!
+    </div>
+    <div *ngIf="hardhatService.deployContractError$()" class="deploy-contract-error-message" >
+      {{ hardhatService.deployContractError$() }}
+    </div>
+    <button *ngIf="hardhatService.deployContractSuccessful$()" mat-stroked-button color="accent" (click)="onReset()">Reset Contract UI</button>
   </div>
 </div>

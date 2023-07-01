@@ -6,6 +6,9 @@
   width: 340px;
   min-height: 500px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .contract-properties {
@@ -14,11 +17,11 @@
   gap: 16px;
 }
 
-.approve-button {
-  margin-top: 8px;
-}
+// .approve-button {
+//   margin-top: 8px;
+// }
 
-.approval-processing-message {
+.approve-escrow-processing-message {
   align-self: center;
   text-align: center;
   display: flex;
@@ -27,10 +30,16 @@
   gap: 8px;
 }
 
-.escrow-approved-message {
-  background-color: green;
-  color: white;
+.approve-escrow-successful-message {
+  color: green;
   text-align: center;
   font-size: 1.2em;
   padding: 4px;
+}
+
+.approve-escrow-error-message {
+  margin-top: 8px;
+  color: red;
+  font-size: 1.2em;
+  text-align: center;
 }

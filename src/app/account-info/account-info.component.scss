@@ -9,17 +9,16 @@
   padding: 16px;
   margin-left: 16px;
   margin-right: 16px;
+  text-align: center;
+  gap: 8px;
+}
+
+.header {
+  font-size: 1.2em;
+  font-weight: 500;
 }
 
 .account-address {
   text-align: center;
-}
-
-.account-address {
-  display: inline-block;
-  max-width: 100%;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  word-wrap: normal;
+  font-weight: 300;
 }

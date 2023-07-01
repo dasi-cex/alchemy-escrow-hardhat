@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { HardhatService } from '../services/hardhat.service';
-import { take } from 'rxjs';
+import { catchError, take, throwError } from 'rxjs';
 
 @Component({
   selector: 'app-existing-contract',
@@ -18,10 +18,7 @@ export class ExistingContractComponent implements OnInit {
   onApprove() {
     this.hardhatService.approveEscrowTransfer()
       .pipe(take(1))
-      .subscribe(transactionReceipt => {
-        console.log('Component received the transaction receipt!', transactionReceipt);
-      })
-
+      .subscribe();
   }
 
 

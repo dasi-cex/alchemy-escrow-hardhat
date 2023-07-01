@@ -10,10 +10,16 @@ import { ContractProperties } from 'shared-models/contracts/contract-properties.
 })
 export class HardhatService {
 
-  connectedAddress$ = signal<string>('');
+  connectedAddress$ = signal<string>('No wallet connected.');
   existingContractProperties$: ReplaySubject<ContractProperties> = new ReplaySubject(1); // Using ReplaySubject(1) to initialize with no value and also ensure withLatestFrom below provides a value
-  escrowApproved$ = signal<boolean>(false);
-  escrowApprovalProcessing$ = signal<boolean>(false);
+
+  approveEscrowError$ = signal<string | undefined>(undefined);
+  approveEscrowProcessing$ = signal<boolean>(false);
+  approveEscrowSuccessful$ = signal<boolean>(false);
+
+  deployContractError$ = signal<string | undefined>(undefined);
+  deployContractProcessing$ = signal<boolean>(false);
+  deployContractSuccessful$ = signal<boolean>(false);
 
 
   constructor(
@@ -22,12 +28,16 @@ export class HardhatService {
     this.configureProviderAndAddresses();
   }
 
-  deployContract(arbiter: string, beneficiary: string, value: BigNumber): Observable<ethers.providers.TransactionReceipt> {
+  deployContract(arbiter: string, beneficiary: string, value: BigNumber) {
+    this.deployContractError$.set(undefined);
+    this.deployContractProcessing$.set(true);
+
     return from(detectEthereumProvider())
       .pipe(
         take(1),
         switchMap(metamaskProvider => {
           const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
+          // const ethersProvider = new ethers.providers.Web3Provider(('metamaskProvider' as any));
           console.log('Creating contract factory with this signer', ethersProvider.getSigner());
           const factory = new ethers.ContractFactory(Escrow.abi, Escrow.bytecode, ethersProvider.getSigner());
           return factory.deploy(arbiter, beneficiary, {value});
@@ -38,18 +48,25 @@ export class HardhatService {
         map(transactionReceipt => {
           console.log('Contract deployed to:', transactionReceipt.transactionHash);
           this.setContractProperties(transactionReceipt.contractAddress);
+          this.deployContractProcessing$.set(false);
+          this.deployContractSuccessful$.set(true);
           return transactionReceipt;
         }),
         shareReplay(),
         catchError(error => {
-          console.log('Error deploying contract', error);
+          console.log('Error deploying contract.', error);
+          const errMsg = 'Error deploying contract.';
+          this.deployContractError$.set(errMsg);
+          this.deployContractProcessing$.set(false);
           return throwError(() => new Error(error));
         })
       )
   }
 
   approveEscrowTransfer(): Observable<ethers.providers.TransactionReceipt> {
-    this.escrowApprovalProcessing$.set(true);
+    this.approveEscrowError$.set(undefined);
+    this.approveEscrowProcessing$.set(true);
+    
     return from(detectEthereumProvider())
       .pipe(
         withLatestFrom(this.existingContractProperties$),
@@ -72,14 +89,28 @@ export class HardhatService {
         shareReplay(),
         catchError(error => {
           console.log('Error deploying contract', error);
-          this.escrowApprovalProcessing$.set(false);
+          const errMsg = 'Error approving contract. Only the arbiter can approve the contract!';
+          this.approveEscrowError$.set(errMsg);
+          this.approveEscrowProcessing$.set(false);
           return throwError(() => new Error(error));
         })
       )
   }
 
-  private setContractProperties(contractAddress: string) {
+  resetContractState() {
+    this.approveEscrowError$.set(undefined);
+    this.approveEscrowProcessing$.set(false);
+    this.approveEscrowSuccessful$.set(false);
 
+    this.deployContractError$.set(undefined);
+    this.deployContractProcessing$.set(false);
+    this.deployContractSuccessful$.set(false);
+
+    this.existingContractProperties$.complete();
+    this.existingContractProperties$ = new ReplaySubject(1);
+  }
+
+  private setContractProperties(contractAddress: string) {
     from(detectEthereumProvider())
       .pipe(
         switchMap(metamaskProvider => {
@@ -160,11 +191,13 @@ export class HardhatService {
   private monitorEscrowApproval(contract: ethers.Contract) {
     contract.on('Approved', (balance: number) => {
       this.ngZone.run(() => {
-        this.escrowApprovalProcessing$.set(false);
-        this.escrowApproved$.set(true);
+        this.approveEscrowProcessing$.set(false);
+        this.approveEscrowSuccessful$.set(true);
         console.log('Contract emitted the Approved event!', balance);
       })
     });
   }
+
+  
 
 }

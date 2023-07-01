@@ -12,12 +12,13 @@ contract Escrow {
 		arbiter = _arbiter;
 		beneficiary = _beneficiary;
 		depositor = msg.sender;
+		require(depositor != arbiter, 'The creator of the contract cannot be the arbiter!');
 	}
 
 	event Approved(uint);
 
 	function approve() external {
-		require(msg.sender == arbiter);
+		require(msg.sender == arbiter, 'Only the arbiter can approve the contract!');
 		uint balance = address(this).balance;
 		(bool sent, ) = payable(beneficiary).call{value: balance}("");
  		require(sent, "Failed to send Ether");

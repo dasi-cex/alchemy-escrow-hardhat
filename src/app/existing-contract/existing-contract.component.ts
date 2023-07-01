@@ -1,6 +1,6 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { HardhatService } from '../services/hardhat.service';
-import { catchError, take, throwError } from 'rxjs';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-existing-contract',

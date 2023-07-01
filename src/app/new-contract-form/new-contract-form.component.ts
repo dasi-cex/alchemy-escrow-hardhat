@@ -51,8 +51,8 @@ export class NewContractFormComponent implements OnInit {
   }
 
   private monitorContractState() {
+    // Effect monitors changes in any signals used within it
     effect(() => {
-
       // Disable form if deployed successfully
       if (this.hardhatService.deployContractSuccessful$()) {
         console.log('Disabling fields. Contract deployment status:', this.hardhatService.deployContractSuccessful$());
@@ -68,7 +68,6 @@ export class NewContractFormComponent implements OnInit {
       if (this.hardhatService.deployContractError$()) {
         this.contractForm.enable();
       }
-
 
     })
     

@@ -54,11 +54,10 @@ export class HardhatService {
         }),
         shareReplay(),
         catchError(error => {
-          console.log('Error deploying contract.', error);
-          const errMsg = 'Error deploying contract.';
+          const errMsg = this.extractEvmErrorMessageText(error.message);
           this.deployContractError$.set(errMsg);
           this.deployContractProcessing$.set(false);
-          return throwError(() => new Error(error));
+          return throwError(() => new Error(errMsg));
         })
       )
   }
@@ -88,8 +87,7 @@ export class HardhatService {
         }),
         shareReplay(),
         catchError(error => {
-          console.log('Error deploying contract', error);
-          const errMsg = 'Error approving contract. Only the arbiter can approve the contract!';
+          const errMsg = this.extractEvmErrorMessageText(error.message);
           this.approveEscrowError$.set(errMsg);
           this.approveEscrowProcessing$.set(false);
           return throwError(() => new Error(error));
@@ -138,8 +136,8 @@ export class HardhatService {
         }),
         shareReplay(),
         catchError(error => {
-          console.log('Error deploying contract', error);
-          return throwError(() => new Error(error));
+          const errMsg = this.extractEvmErrorMessageText(error.message);
+          return throwError(() => new Error(errMsg));
         })
       ).subscribe();
   }
@@ -159,7 +157,8 @@ export class HardhatService {
         shareReplay(),
         catchError( error => {
           console.log('Error fetching provider info', error);
-          return throwError(() => new Error(error));
+          const errMsg = this.extractEvmErrorMessageText(error.message);
+          return throwError(() => new Error(errMsg));
         })
         
       ).subscribe();
@@ -198,6 +197,14 @@ export class HardhatService {
     });
   }
 
+  private extractEvmErrorMessageText(errorMessage: string): string {
+    const regex = new RegExp(/reason="(.*?)"/g);
+    const match = regex.exec(errorMessage);
+    if (match) {
+      return match[1];
+    } else {
+      return `The transaction reverted for an unknown reason!`;
+    }
+  }
   
-
 }

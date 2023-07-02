@@ -1,6 +1,6 @@
 import { Component, OnInit, effect } from '@angular/core';
 import { AbstractControl, FormBuilder, Validators } from '@angular/forms';
-import { HardhatService } from '../services/hardhat.service';
+import { EvmService } from '../services/evm.service';
 import { Observable, take } from 'rxjs';
 import { ethers } from 'ethers';
 
@@ -21,7 +21,7 @@ export class NewContractFormComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    public hardhatService: HardhatService
+    public evmService: EvmService,
   ) {
     this.monitorContractState(); // Effects must be called from the constructor
   }
@@ -29,22 +29,17 @@ export class NewContractFormComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  // TODO: Update smart contract to ensure arbiter can't be the deployer
-
   onSubmit() {
     console.log('Form values', this.contractForm.value);
     const weiValue = ethers.utils.parseEther(this.depositAmount.value.toString());
     console.log('wei value', weiValue);
-    this.hardhatService.deployContract(this.arbiterAccount.value, this.beneficiaryAccount.value, weiValue)
+    this.evmService.deployContract(this.arbiterAccount.value, this.beneficiaryAccount.value, weiValue)
       .pipe(take(1))
-      .subscribe(transactionReceipt => {
-        console.log('Transaction successfully deployed!', transactionReceipt);
-
-      })
+      .subscribe();
   }
 
   onReset() {
-    this.hardhatService.resetContractState();
+    this.evmService.resetContractState();
     // Reset and renable form if reset is requested
     this.contractForm.reset();
     this.contractForm.enable();
@@ -54,31 +49,24 @@ export class NewContractFormComponent implements OnInit {
     // Effect monitors changes in any signals used within it
     effect(() => {
       // Disable form if deployed successfully
-      if (this.hardhatService.deployContractSuccessful$()) {
-        console.log('Disabling fields. Contract deployment status:', this.hardhatService.deployContractSuccessful$());
+      if (this.evmService.deployContractSuccessful$()) {
+        console.log('Disabling fields. Contract deployment status:', this.evmService.deployContractSuccessful$());
         this.contractForm.disable();
       }
 
       // Disable form while deploying
-      if (this.hardhatService.deployContractProcessing$() && !this.hardhatService.deployContractSuccessful$()) {
+      if (this.evmService.deployContractProcessing$() && !this.evmService.deployContractSuccessful$()) {
         this.contractForm.disable();
       } 
 
       // Enable form if error
-      if (this.hardhatService.deployContractError$()) {
+      if (this.evmService.deployContractError$()) {
         this.contractForm.enable();
       }
 
     })
     
   }
-
-  // private disableForm() {
-    
-  //   this.arbiterAccount.disable();
-  //   this.beneficiaryAccount.disable();
-  //   this.depositAmount.disable();
-  // }
 
   get arbiterAccount() {return this.contractForm.get('arbiterAccount') as AbstractControl<string>}
   get beneficiaryAccount() {return this.contractForm.get('beneficiaryAccount') as AbstractControl<string>}

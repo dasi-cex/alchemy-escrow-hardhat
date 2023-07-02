@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { HardhatService } from '../services/hardhat.service';
+import { EvmService } from '../services/evm.service';
 
 @Component({
   selector: 'app-account-info',
@@ -9,7 +9,7 @@ import { HardhatService } from '../services/hardhat.service';
 export class AccountInfoComponent {
 
   constructor(
-    public hardhatService: HardhatService,
+    public hardhatService: EvmService,
   ) { }
 
 }

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { HardhatService } from '../services/hardhat.service';
+import { EvmService } from '../services/evm.service';
 import { take } from 'rxjs';
 
 @Component({
@@ -9,14 +9,14 @@ import { take } from 'rxjs';
 })
 export class ExistingContractComponent implements OnInit {
 
-  constructor(public hardhatService: HardhatService) {}
+  constructor(public evmService: EvmService) {}
 
   ngOnInit(): void {
     
   }
 
   onApprove() {
-    this.hardhatService.approveEscrowTransfer()
+    this.evmService.approveEscrowTransfer()
       .pipe(take(1))
       .subscribe();
   }

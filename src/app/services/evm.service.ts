@@ -4,11 +4,12 @@ import { BigNumber, ethers } from 'ethers';
 import { Observable, ReplaySubject, catchError, combineLatest, from, map, shareReplay, switchMap, take, tap, throwError, withLatestFrom } from 'rxjs';
 import Escrow from '../artifacts/contracts/Escrow.sol/Escrow.json';
 import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
+import { FirebaseService } from './firebase.service';
 
 @Injectable({
   providedIn: 'root'
 })
-export class HardhatService {
+export class EvmService {
 
   connectedAddress$ = signal<string>('No wallet connected.');
   existingContractProperties$: ReplaySubject<ContractProperties> = new ReplaySubject(1); // Using ReplaySubject(1) to initialize with no value and also ensure withLatestFrom below provides a value
@@ -23,16 +24,18 @@ export class HardhatService {
 
 
   constructor(
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private firebaseService: FirebaseService
   ) { 
     this.configureProviderAndAddresses();
   }
 
-  deployContract(arbiter: string, beneficiary: string, value: BigNumber) {
+  // Deploys the contract and adds it to the database
+  deployContract(arbiter: string, beneficiary: string, value: BigNumber): Observable<ContractProperties> {
     this.deployContractError$.set(undefined);
     this.deployContractProcessing$.set(true);
 
-    return from(detectEthereumProvider())
+    const deployContractCall = from(detectEthereumProvider())
       .pipe(
         take(1),
         switchMap(metamaskProvider => {
@@ -59,7 +62,31 @@ export class HardhatService {
           this.deployContractProcessing$.set(false);
           return throwError(() => new Error(errMsg));
         })
-      )
+      );
+
+    const addContractToFb = deployContractCall
+      .pipe(
+        switchMap(transactionReceipt => {
+          const contractProperties: ContractProperties = {
+            address: transactionReceipt.contractAddress,
+            arbiter,
+            beneficiary,
+            depositor: this.connectedAddress$(),
+            value: ethers.utils.formatEther(value)
+          }
+          return this.firebaseService.addDeployedContract(contractProperties)
+        }),
+        shareReplay(),
+        catchError(error => {
+          const errMsg = error;
+          this.deployContractError$.set(errMsg);
+          this.deployContractProcessing$.set(false);
+          return throwError(() => new Error(errMsg));
+        })
+      );
+    
+    return addContractToFb;
+
   }
 
   approveEscrowTransfer(): Observable<ethers.providers.TransactionReceipt> {

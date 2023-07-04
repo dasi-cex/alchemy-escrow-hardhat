@@ -12,7 +12,8 @@ const addDeployedContractToFs = async (contractProperties: ContractProperties) =
   const contractCollectionRef = firestoreDb().collection(FbCollectionPaths.Contracts);
   const contractRecord: ContractRecord = {
     ...contractProperties,
-    createdAt: Timestamp.now()
+    createdAt: Timestamp.now(),
+    lastUpdatedAt: Timestamp.now()
   };
 
   const writeResult = await contractCollectionRef.doc(contractRecord.address).set(contractRecord)

@@ -7,12 +7,13 @@
       <div class="contract-property"><b>Depositor: </b> {{contractProperties.depositor}}</div>
       <div class="contract-property"><b>Amount Escrowed: </b> {{contractProperties.value}} ETH</div>
       <div class="contract-property"><b>Contract Address: </b> {{contractProperties.address}}</div>
-      <button *ngIf="!evmService.approveEscrowSuccessful$() && !evmService.approveEscrowProcessing$()" class="approve-button" mat-raised-button color="accent" (click)="onApprove()">Approve</button>
+      <div class="contract-property"><b>Approved: </b> {{contractProperties.approved}}</div>
+      <button *ngIf="!contractProperties.approved && !evmService.approveEscrowProcessing$()" class="approve-button" mat-raised-button color="accent" (click)="onApprove()">Approve</button>
       <div *ngIf="evmService.approveEscrowProcessing$()" class="approve-escrow-processing-message">
         <mat-spinner></mat-spinner>
         Approval processing...
       </div>
-      <div *ngIf="evmService.approveEscrowSuccessful$()" class="approve-escrow-successful-message">
+      <div *ngIf="contractProperties.approved" class="approve-escrow-successful-message">
         Escrow Approved!
       </div>
     </div>
@@ -24,6 +25,6 @@
     </div>
   </div>
   <div *ngIf="!evmService.approveEscrowProcessing$()" class="bottom-content">
-    <button mat-stroked-button color="primary">View All Contracts</button>
+    <button mat-stroked-button color="primary" (click)="onViewAllContracts()">View All Contracts</button>
   </div>
 </div>

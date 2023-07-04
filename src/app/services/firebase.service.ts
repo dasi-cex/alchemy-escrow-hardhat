@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, Timestamp, collection, collectionData } from '@angular/fire/firestore';
+import { Firestore, Timestamp, collection, collectionData, doc, docData } from '@angular/fire/firestore';
 import { Functions, httpsCallableData } from '@angular/fire/functions';
 import { Observable, catchError, map, shareReplay, take, throwError } from 'rxjs';
 import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
@@ -41,6 +41,43 @@ export class FirebaseService {
       );
 
     return res;
+  }
+
+  updateDeployedContract(partialContractProperties: Partial<ContractProperties>) {
+    console.log('Submitting updateDeployedContract to server with this data', partialContractProperties);
+
+    const updateDeployedContractHttpCall: (data: Partial<ContractProperties>) => Observable<Timestamp> = httpsCallableData(
+      this.functions,
+      FbFunctionNames.ON_CALL_UPDATE_DEPLOYED_CONTRACT
+    );
+    const res = updateDeployedContractHttpCall(partialContractProperties)
+      .pipe(
+        take(1),
+        map(writeResponse => {
+          console.log('Updated this contract in database:', partialContractProperties);
+          if (!writeResponse) {
+            throw new Error(`Error updating this contract in database.`);
+          }
+          return partialContractProperties;
+        }),
+        shareReplay(),
+        catchError(error => {
+          return throwError(() => new Error(error));
+        })
+      );
+
+    return res;
+  }
+
+  fetchSingleDeployedContract(contractAddress: string): Observable<ContractRecord> {
+    const contractRef = doc(this.firestore, FbCollectionPaths.Contracts, contractAddress);
+    return docData(contractRef)
+      .pipe(
+        map(contractRecord => {
+          console.log('Fetched contract record', contractRecord);
+          return contractRecord as ContractRecord
+        })
+      );
   }
 
   fetchDeployedContracts(): Observable<ContractRecord[]> {

@@ -4,6 +4,7 @@ import { BigNumber, ethers } from 'ethers';
 import Escrow from '../artifacts/contracts/Escrow.sol/Escrow.json';
 import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 import { FirebaseService } from './firebase.service';
+import { take, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -55,11 +56,12 @@ export class EvmService {
         throw new Error(`Error waiting for transaction to confirm: ${this.extractEvmErrorMessageText(error.message)}`);
       });
     
-    this.setContractProperties(transactionReceipt.contractAddress);
+    this.fetchContractProperties(transactionReceipt.contractAddress);
     this.deployContractProcessing$.set(false);
     this.deployContractSuccessful$.set(true);
     const contractProperties: ContractProperties = {
       address: transactionReceipt.contractAddress,
+      approved: false,
       arbiter,
       beneficiary,
       depositor: this.connectedAddress$(),
@@ -75,7 +77,7 @@ export class EvmService {
     console.log('Calling approveEscrowTransfer with this signer', await this.currentProvider$()!.getSigner().getAddress())
     this.monitorEscrowApproval(this.currentContract$()!);
     
-    // TODO: Somehow this specific call triggers a call from Address 1 even though it is called by address 2
+    // Somehow this specific call triggers a call from Address 1 even though it is called by address 2. No fix found.
     const approveTx = await (this.currentContract$()!['approve'].call() as Promise<ethers.providers.TransactionResponse>)
       .catch(error => {
         this.approveEscrowError$.set(this.extractEvmErrorMessageText(error.message));
@@ -105,13 +107,17 @@ export class EvmService {
     this.existingContractProperties$.set(undefined);
   }
 
-  private async setContractProperties(contractAddress: string) {
+  async fetchContractProperties(contractAddress: string) {
     console.log('Calling setContractProperties with this signer', await this.currentProvider$()!.getSigner().getAddress())
+    const contract = new ethers.Contract(contractAddress, Escrow.abi, this.currentProvider$()!.getSigner());
+    this.currentContract$.set(contract);
     const arbiter = await (this.currentContract$()!['arbiter'].call() as Promise<string>)
       .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
     const beneficiary = await (this.currentContract$()!['beneficiary'].call() as Promise<string>)
       .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
     const depositor = await (this.currentContract$()!['depositor'].call() as Promise<string>)
+      .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
+    const approved = await (this.currentContract$()!['isApproved'].call() as Promise<boolean>)
       .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
     const value = await (this.currentProvider$()!.getBalance(contractAddress) as Promise<BigNumber>)
       .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
@@ -120,12 +126,12 @@ export class EvmService {
       arbiter,
       beneficiary,
       depositor,
+      approved,
       value: valueInEth,
       address: contractAddress
     }
     console.log('Fetched these contract properties', contractProperties);
     this.existingContractProperties$.set(contractProperties);
-
   }
 
   // This makes the provider and addresses available to the application
@@ -148,7 +154,6 @@ export class EvmService {
     
     this.connectedAddress$.set(currentAccounts[0]); // Update the accounts
     console.log('Initial connected address is: ', this.connectedAddress$());
-
   }
 
   // Initialize the listener for changes to the provider account. Not sure why this only works with metmask provider vs ethers provider
@@ -164,13 +169,19 @@ export class EvmService {
   };
 
   private monitorEscrowApproval(contract: ethers.Contract) {
-    contract.on('Approved', (balance: number) => {
+    contract.on('Approved', async (balance: number) => {
       this.ngZone.run(() => {
+        console.log('Contract emitted the Approved event!', balance);
         this.approveEscrowProcessing$.set(false);
         this.approveEscrowSuccessful$.set(true);
-        console.log('Contract emitted the Approved event!', balance);
       });
-      this.setContractProperties(contract.address);
+      await this.fetchContractProperties(contract.address);
+      const updatedContract: Partial<ContractProperties> = {
+        address: contract.address,
+        approved: this.existingContractProperties$()?.approved,
+        value: this.existingContractProperties$()?.value
+      }
+      this.firebaseService.updateDeployedContract(updatedContract);
     });
   }
 

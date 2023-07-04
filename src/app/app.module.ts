@@ -14,6 +14,7 @@ import { NewContractFormComponent } from './new-contract-form/new-contract-form.
 import { ExistingContractComponent } from './existing-contract/existing-contract.component';
 import { AccountInfoComponent } from './account-info/account-info.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
+import { AllContractsDialogComponent } from './all-contracts-dialog/all-contracts-dialog.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { DashboardComponent } from './dashboard/dashboard.component';
     NewContractFormComponent,
     ExistingContractComponent,
     AccountInfoComponent,
-    DashboardComponent
+    DashboardComponent,
+    AllContractsDialogComponent
   ],
   imports: [
     BrowserModule,

@@ -19,6 +19,7 @@ contract Escrow {
 
 	function approve() external {
 		require(msg.sender == arbiter, 'Only the arbiter can approve the contract!');
+		require(!isApproved, 'Contract has already been approved!');
 		uint balance = address(this).balance;
 		(bool sent, ) = payable(beneficiary).call{value: balance}("");
  		require(sent, "Failed to send Ether");

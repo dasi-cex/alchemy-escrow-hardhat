@@ -4,3 +4,4 @@ import { setGlobalOptions } from 'firebase-functions/v2/options';
 setGlobalOptions({ maxInstances: 10 });
 
 export { onCallAddDeployedContract } from './on-call-add-deployed-contract';
+export { onCallUpdateDeployedContract } from './on-call-update-deployed-contract';

@@ -29,13 +29,19 @@ export class NewContractFormComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  onSubmit() {
+  async onSubmit() {
     console.log('Form values', this.contractForm.value);
     const weiValue = ethers.utils.parseEther(this.depositAmount.value.toString());
     console.log('wei value', weiValue);
-    this.evmService.deployContract(this.arbiterAccount.value, this.beneficiaryAccount.value, weiValue)
-      .pipe(take(1))
-      .subscribe();
+
+    const addContractToFbObservable = await this.evmService.deployContract(this.arbiterAccount.value, this.beneficiaryAccount.value, weiValue)
+      .catch(error => console.log('Error in service', error));
+
+    if (addContractToFbObservable) {
+      addContractToFbObservable
+        .pipe(take(1))
+        .subscribe();
+    }
   }
 
   onReset() {

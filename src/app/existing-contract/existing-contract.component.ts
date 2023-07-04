@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { EvmService } from '../services/evm.service';
-import { take } from 'rxjs';
 
 @Component({
   selector: 'app-existing-contract',
@@ -15,10 +14,11 @@ export class ExistingContractComponent implements OnInit {
     
   }
 
-  onApprove() {
-    this.evmService.approveEscrowTransfer()
-      .pipe(take(1))
-      .subscribe();
+  async onApprove() {
+
+    await this.evmService.approveEscrowTransfer()
+      .catch(error => console.log('Error in service', error));
+
   }
 
 

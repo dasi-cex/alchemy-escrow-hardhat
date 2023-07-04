@@ -13,13 +13,15 @@ import { provideFunctions,getFunctions } from '@angular/fire/functions';
 import { NewContractFormComponent } from './new-contract-form/new-contract-form.component';
 import { ExistingContractComponent } from './existing-contract/existing-contract.component';
 import { AccountInfoComponent } from './account-info/account-info.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     NewContractFormComponent,
     ExistingContractComponent,
-    AccountInfoComponent
+    AccountInfoComponent,
+    DashboardComponent
   ],
   imports: [
     BrowserModule,

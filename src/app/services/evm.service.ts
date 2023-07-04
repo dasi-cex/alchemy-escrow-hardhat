@@ -1,7 +1,6 @@
 import { Injectable, NgZone, signal } from '@angular/core';
 import detectEthereumProvider from '@metamask/detect-provider'
 import { BigNumber, ethers } from 'ethers';
-import { Observable, ReplaySubject, catchError, combineLatest, from, map, shareReplay, switchMap, take, tap, throwError, withLatestFrom } from 'rxjs';
 import Escrow from '../artifacts/contracts/Escrow.sol/Escrow.json';
 import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 import { FirebaseService } from './firebase.service';
@@ -12,7 +11,7 @@ import { FirebaseService } from './firebase.service';
 export class EvmService {
 
   connectedAddress$ = signal<string>('No wallet connected.');
-  existingContractProperties$: ReplaySubject<ContractProperties> = new ReplaySubject(1); // Using ReplaySubject(1) to initialize with no value and also ensure withLatestFrom below provides a value
+  existingContractProperties$ = signal<ContractProperties | undefined>(undefined);
 
   approveEscrowError$ = signal<string | undefined>(undefined);
   approveEscrowProcessing$ = signal<boolean>(false);
@@ -22,6 +21,8 @@ export class EvmService {
   deployContractProcessing$ = signal<boolean>(false);
   deployContractSuccessful$ = signal<boolean>(false);
 
+  currentProvider$ = signal<ethers.providers.Web3Provider | undefined>(undefined);
+  currentContract$ = signal<ethers.Contract | undefined>(undefined);
 
   constructor(
     private ngZone: NgZone,
@@ -31,95 +32,65 @@ export class EvmService {
   }
 
   // Deploys the contract and adds it to the database
-  deployContract(arbiter: string, beneficiary: string, value: BigNumber): Observable<ContractProperties> {
+  async deployContract(arbiter: string, beneficiary: string, value: BigNumber) {
     this.deployContractError$.set(undefined);
     this.deployContractProcessing$.set(true);
 
-    const deployContractCall = from(detectEthereumProvider())
-      .pipe(
-        take(1),
-        switchMap(metamaskProvider => {
-          const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
-          // const ethersProvider = new ethers.providers.Web3Provider(('metamaskProvider' as any));
-          console.log('Creating contract factory with this signer', ethersProvider.getSigner());
-          const factory = new ethers.ContractFactory(Escrow.abi, Escrow.bytecode, ethersProvider.getSigner());
-          return factory.deploy(arbiter, beneficiary, {value});
-        }),
-        switchMap(contract => {
-          return contract.deployTransaction.wait();
-        }),
-        map(transactionReceipt => {
-          console.log('Contract deployed to:', transactionReceipt.transactionHash);
-          this.setContractProperties(transactionReceipt.contractAddress);
-          this.deployContractProcessing$.set(false);
-          this.deployContractSuccessful$.set(true);
-          return transactionReceipt;
-        }),
-        shareReplay(),
-        catchError(error => {
-          const errMsg = this.extractEvmErrorMessageText(error.message);
-          this.deployContractError$.set(errMsg);
-          this.deployContractProcessing$.set(false);
-          return throwError(() => new Error(errMsg));
-        })
-      );
-
-    const addContractToFb = deployContractCall
-      .pipe(
-        switchMap(transactionReceipt => {
-          const contractProperties: ContractProperties = {
-            address: transactionReceipt.contractAddress,
-            arbiter,
-            beneficiary,
-            depositor: this.connectedAddress$(),
-            value: ethers.utils.formatEther(value)
-          }
-          return this.firebaseService.addDeployedContract(contractProperties)
-        }),
-        shareReplay(),
-        catchError(error => {
-          const errMsg = error;
-          this.deployContractError$.set(errMsg);
-          this.deployContractProcessing$.set(false);
-          return throwError(() => new Error(errMsg));
-        })
-      );
+    const factory = new ethers.ContractFactory(Escrow.abi, Escrow.bytecode, this.currentProvider$()!.getSigner());
+    console.log('Creating contract factory with this signer', this.currentProvider$()!.getSigner());
     
-    return addContractToFb;
+    const contract = await factory.deploy(arbiter, beneficiary, {value})
+      .catch(error => {
+        this.deployContractError$.set(this.extractEvmErrorMessageText(error.message));
+        this.deployContractProcessing$.set(false);
+        throw new Error(`Error deploying contract: ${this.extractEvmErrorMessageText(error.message)}`);
+      });
+  
+    this.currentContract$.set(contract);
 
+    const transactionReceipt = await contract.deployTransaction.wait()
+      .catch(error => {
+        this.deployContractError$.set(this.extractEvmErrorMessageText(error.message));
+        this.deployContractProcessing$.set(false);
+        throw new Error(`Error waiting for transaction to confirm: ${this.extractEvmErrorMessageText(error.message)}`);
+      });
+    
+    this.setContractProperties(transactionReceipt.contractAddress);
+    this.deployContractProcessing$.set(false);
+    this.deployContractSuccessful$.set(true);
+    const contractProperties: ContractProperties = {
+      address: transactionReceipt.contractAddress,
+      arbiter,
+      beneficiary,
+      depositor: this.connectedAddress$(),
+      value: ethers.utils.formatEther(value)
+    }
+    return this.firebaseService.addDeployedContract(contractProperties);
   }
 
-  approveEscrowTransfer(): Observable<ethers.providers.TransactionReceipt> {
+  async approveEscrowTransfer() {
+    console.log('Testing approveEscrowTransfer');
     this.approveEscrowError$.set(undefined);
     this.approveEscrowProcessing$.set(true);
+    console.log('Calling approveEscrowTransfer with this signer', await this.currentProvider$()!.getSigner().getAddress())
+    this.monitorEscrowApproval(this.currentContract$()!);
     
-    return from(detectEthereumProvider())
-      .pipe(
-        withLatestFrom(this.existingContractProperties$),
-        take(1),
-        switchMap(([metamaskProvider, contractProperties]) => {
-          console.log('Processing approve escrow transfer with these contract properties', contractProperties);
-          const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
-          const contract = new ethers.Contract(contractProperties.address, Escrow.abi, ethersProvider.getSigner());
-          this.monitorEscrowApproval(contract);
-          const approveTx = contract['approve'].call() as Promise<ethers.providers.TransactionResponse>;
-          return approveTx;
-        }),
-        switchMap(approveTx => {
-          return approveTx.wait();
-        }),
-        map(transactionReceipt => {
-          console.log('Transaction mined with hash:', transactionReceipt.transactionHash);
-          return transactionReceipt;
-        }),
-        shareReplay(),
-        catchError(error => {
-          const errMsg = this.extractEvmErrorMessageText(error.message);
-          this.approveEscrowError$.set(errMsg);
-          this.approveEscrowProcessing$.set(false);
-          return throwError(() => new Error(error));
-        })
-      )
+    // TODO: Somehow this specific call triggers a call from Address 1 even though it is called by address 2
+    const approveTx = await (this.currentContract$()!['approve'].call() as Promise<ethers.providers.TransactionResponse>)
+      .catch(error => {
+        this.approveEscrowError$.set(this.extractEvmErrorMessageText(error.message));
+        this.approveEscrowProcessing$.set(false);
+        throw new Error(`Error calling 'approve' on contract: ${this.extractEvmErrorMessageText(error.message)}`);
+      });
+    
+    const transactionReceipt = await approveTx?.wait()
+      .catch(error => {
+        this.approveEscrowError$.set(this.extractEvmErrorMessageText(error.message));
+        this.approveEscrowProcessing$.set(false);
+        throw new Error(`Error waiting for transaction to confirm: ${this.extractEvmErrorMessageText(error.message)}`);
+      });
+
+    return transactionReceipt;
   }
 
   resetContractState() {
@@ -131,67 +102,56 @@ export class EvmService {
     this.deployContractProcessing$.set(false);
     this.deployContractSuccessful$.set(false);
 
-    this.existingContractProperties$.complete();
-    this.existingContractProperties$ = new ReplaySubject(1);
+    this.existingContractProperties$.set(undefined);
   }
 
-  private setContractProperties(contractAddress: string) {
-    from(detectEthereumProvider())
-      .pipe(
-        switchMap(metamaskProvider => {
-          const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
-          const contract = new ethers.Contract(contractAddress, Escrow.abi, ethersProvider.getSigner());
-          return combineLatest([
-            contract['arbiter'].call() as Promise<string>, 
-            contract['beneficiary'].call() as Promise<string>, 
-            contract['depositor'].call() as Promise<string>,
-            ethersProvider.getBalance(contractAddress) as Promise<BigNumber>
-          ])
-        }),
-        map(([arbiter, beneficiary, depositor, value]) => {
-          const valueInEth = ethers.utils.formatEther(value);
-          const contractProperties: ContractProperties = {
-            arbiter,
-            beneficiary,
-            depositor,
-            value: valueInEth,
-            address: contractAddress
-          }
-          console.log('Fetched these contract properties', contractProperties);
-          this.existingContractProperties$.next(contractProperties);
-          this.existingContractProperties$.next(contractProperties);
-        }),
-        shareReplay(),
-        catchError(error => {
-          const errMsg = this.extractEvmErrorMessageText(error.message);
-          return throwError(() => new Error(errMsg));
-        })
-      ).subscribe();
+  private async setContractProperties(contractAddress: string) {
+    console.log('Calling setContractProperties with this signer', await this.currentProvider$()!.getSigner().getAddress())
+    const arbiter = await (this.currentContract$()!['arbiter'].call() as Promise<string>)
+      .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
+    const beneficiary = await (this.currentContract$()!['beneficiary'].call() as Promise<string>)
+      .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
+    const depositor = await (this.currentContract$()!['depositor'].call() as Promise<string>)
+      .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
+    const value = await (this.currentProvider$()!.getBalance(contractAddress) as Promise<BigNumber>)
+      .catch(error => {throw this.extractEvmErrorMessageText(error.message)});
+    const valueInEth = ethers.utils.formatEther(value);
+    const contractProperties: ContractProperties = {
+      arbiter,
+      beneficiary,
+      depositor,
+      value: valueInEth,
+      address: contractAddress
+    }
+    console.log('Fetched these contract properties', contractProperties);
+    this.existingContractProperties$.set(contractProperties);
+
   }
 
   // This makes the provider and addresses available to the application
-  private configureProviderAndAddresses() {
-    from(detectEthereumProvider())
-      .pipe(
-        switchMap(metamaskProvider => {
-          const ethersProvider = new ethers.providers.Web3Provider((metamaskProvider as any));
-          this.monitorProviderChanges(metamaskProvider);
-          return this.requestProviderAccounts(ethersProvider);
-        }),
-        tap(accounts => {
-          this.initializeCurrentAccount(accounts);
-        }),
-        shareReplay(),
-        catchError( error => {
-          console.log('Error fetching provider info', error);
-          const errMsg = this.extractEvmErrorMessageText(error.message);
-          return throwError(() => new Error(errMsg));
-        })
-        
-      ).subscribe();
+  private async configureProviderAndAddresses() {
+    
+    const metamaskProvider = await detectEthereumProvider()
+      .catch(error => {
+        console.log('Error fetching metamask provider'); 
+        throw error;
+      });
+    
+    this.monitorProviderChanges(metamaskProvider);
+    this.currentProvider$.set(new ethers.providers.Web3Provider((metamaskProvider as any)));
+    
+    const currentAccounts = await (this.currentProvider$()!.send('eth_requestAccounts', []) as Promise<string[]>)
+      .catch(error => {
+        console.log('Error fetching provider accounts'); 
+        throw error;
+      }); // This triggers a request to connect a wallet
+    
+    this.connectedAddress$.set(currentAccounts[0]); // Update the accounts
+    console.log('Initial connected address is: ', this.connectedAddress$());
+
   }
 
-  // Initialize the listener for changes to the provider account
+  // Initialize the listener for changes to the provider account. Not sure why this only works with metmask provider vs ethers provider
   private monitorProviderChanges(metamaskProvider: any) {
     metamaskProvider?.on('accountsChanged', (accounts: string[]) => {
       // Running this inside of ngZone because otherwise the change detection isn't triggered on observable update
@@ -200,19 +160,8 @@ export class EvmService {
         console.log('New connected address is:', this.connectedAddress$());
       })
     })
+
   };
-
-  // Create a request for the provider accounts
-  private requestProviderAccounts(ethersProvider: ethers.providers.Web3Provider): Observable<string[]> {
-    const currentAccounts: Promise<string[]> = ethersProvider.send('eth_requestAccounts', []); // This triggers a request to connect a wallet
-    return from(currentAccounts);
-  }
-
-  // Set the initial state of the provider account
-  private initializeCurrentAccount(accounts: string[]) {
-    this.connectedAddress$.set(accounts[0]); // Update the accounts
-    console.log('Initial connected address is: ', this.connectedAddress$());
-  }
 
   private monitorEscrowApproval(contract: ethers.Contract) {
     contract.on('Approved', (balance: number) => {
@@ -220,17 +169,21 @@ export class EvmService {
         this.approveEscrowProcessing$.set(false);
         this.approveEscrowSuccessful$.set(true);
         console.log('Contract emitted the Approved event!', balance);
-      })
+      });
+      this.setContractProperties(contract.address);
     });
   }
 
   private extractEvmErrorMessageText(errorMessage: string): string {
+    if (!errorMessage) {
+      return 'Transaction reverted with no message.';
+    }
     const regex = new RegExp(/reason="(.*?)"/g);
     const match = regex.exec(errorMessage);
     if (match) {
       return match[1];
     } else {
-      return `The transaction reverted for an unknown reason!`;
+      return errorMessage;
     }
   }
   

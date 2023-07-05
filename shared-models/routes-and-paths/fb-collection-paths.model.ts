@@ -1,3 +1,3 @@
 export enum FbCollectionPaths {
-  Contracts = 'contracts',
+  CONTRACTS = 'contracts',
 }

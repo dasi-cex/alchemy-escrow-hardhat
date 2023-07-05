@@ -10,7 +10,8 @@
     <app-existing-contract></app-existing-contract>
   </div>
   <div class="account-components">
-    <app-account-info></app-account-info>
+    <app-account-info (click)="onShowVersion()"></app-account-info>
+    <div *ngIf="showVersion">Version: {{ version }}</div>
   </div>
 </div>
 

@@ -7,10 +7,6 @@ import { ContractRecord } from 'shared-models/contracts/contract-record.model';
 import { FbCollectionPaths } from 'shared-models/routes-and-paths/fb-collection-paths.model';
 import { FbFunctionNames } from 'shared-models/routes-and-paths/fb-function-names.model';
 
-enum LocalFbCollectionPaths {
-  ON_CALL_ADD_DEPLOYED_CONTRACT = 'onCallAddDeployedContract'
-}
-
 @Injectable({
   providedIn: 'root'
 })
@@ -34,11 +30,11 @@ export class FirebaseService {
     console.log('Submitting addDeployedContract to server with this data', contractProperties);
     this.addDeployedContractError$.set(undefined);
     this.addDeployedContractProcessing$.set(true);
-    console.log('Will deploy to this function name', LocalFbCollectionPaths.ON_CALL_ADD_DEPLOYED_CONTRACT);
+    console.log('Will deploy to this function name', FbFunctionNames.ON_CALL_ADD_DEPLOYED_CONTRACT);
 
     const addDeployedContractHttpCall: (data: ContractProperties) => Observable<Timestamp> = httpsCallableData(
       this.functions,
-      LocalFbCollectionPaths.ON_CALL_ADD_DEPLOYED_CONTRACT
+      FbFunctionNames.ON_CALL_ADD_DEPLOYED_CONTRACT
     );
     const res = addDeployedContractHttpCall(contractProperties)
       .pipe(
@@ -92,7 +88,7 @@ export class FirebaseService {
   }
 
   fetchSingleDeployedContract(contractAddress: string): Observable<ContractRecord> {
-    const contractRef = doc(this.firestore, FbCollectionPaths.Contracts, contractAddress);
+    const contractRef = doc(this.firestore, FbCollectionPaths.CONTRACTS, contractAddress);
     return docData(contractRef)
       .pipe(
         map(contractRecord => {
@@ -106,7 +102,7 @@ export class FirebaseService {
     console.log('Fetching all deployed contracts');
     this.fetchDeployedContractsError$.set(undefined);
     this.fetchDeployedContractsProcessing$.set(true);
-    const contractsCollection = collection(this.firestore, FbCollectionPaths.Contracts);
+    const contractsCollection = collection(this.firestore, FbCollectionPaths.CONTRACTS);
     const contractCollectionData = collectionData(contractsCollection) as Observable<ContractRecord[]>;
     return contractCollectionData
       .pipe(

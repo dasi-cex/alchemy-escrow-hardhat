@@ -2,8 +2,8 @@ import { Injectable, NgZone, signal } from '@angular/core';
 import detectEthereumProvider from '@metamask/detect-provider'
 import { BigNumber, ethers } from 'ethers';
 import Escrow from '../artifacts/contracts/Escrow.sol/Escrow.json';
-import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 import { FirebaseService } from './firebase.service';
+import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 
 @Injectable({
   providedIn: 'root'

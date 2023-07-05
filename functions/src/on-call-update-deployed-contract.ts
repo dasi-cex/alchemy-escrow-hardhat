@@ -9,7 +9,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 
 
 const updateDeployedContractToFs = async (partialContractProperties: Partial<ContractProperties>) => {
-  const contractCollectionRef = firestoreDb().collection(FbCollectionPaths.Contracts);
+  const contractCollectionRef = firestoreDb().collection(FbCollectionPaths.CONTRACTS);
   const updatedContractRecord: Partial<ContractRecord> = {
     ...partialContractProperties,
     lastUpdatedAt: Timestamp.now()

@@ -14,7 +14,7 @@ export class NewContractFormComponent implements OnInit {
   contractForm = this.fb.group({
     arbiterAccount: ['', [Validators.required]],
     beneficiaryAccount: ['', [Validators.required]],
-    depositAmount: [0, [Validators.required, Validators.min(1)]]
+    depositAmount: [0, [Validators.required, Validators.min(0.0001)]]
   });
 
   currentWalletAddres!: Observable<string>;

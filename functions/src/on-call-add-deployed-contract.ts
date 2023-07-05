@@ -6,10 +6,8 @@ import { firestoreDb } from './config';
 import { ContractProperties } from '../../shared-models/contracts/contract-properties.model';
 import { Timestamp } from 'firebase-admin/firestore';
 
-
-
 const addDeployedContractToFs = async (contractProperties: ContractProperties) => {
-  const contractCollectionRef = firestoreDb().collection(FbCollectionPaths.Contracts);
+  const contractCollectionRef = firestoreDb().collection(FbCollectionPaths.CONTRACTS);
   const contractRecord: ContractRecord = {
     ...contractProperties,
     createdAt: Timestamp.now(),

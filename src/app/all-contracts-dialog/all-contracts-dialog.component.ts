@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FirebaseService } from '../services/firebase.service';
 import { Observable } from 'rxjs';
-import { ContractRecord } from 'shared-models/contracts/contract-record.model';
-import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 import { MatDialogRef } from '@angular/material/dialog';
+import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
+import { ContractRecord } from 'shared-models/contracts/contract-record.model';
 
 @Component({
   selector: 'app-all-contracts-dialog',

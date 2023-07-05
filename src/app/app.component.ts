@@ -7,4 +7,10 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'escrow-hardhat';
+  version = '0.0.6';
+  showVersion = false;
+
+  onShowVersion() {
+    this.showVersion = !this.showVersion;
+  }
 }

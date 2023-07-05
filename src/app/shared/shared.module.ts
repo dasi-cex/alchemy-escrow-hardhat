@@ -1,22 +1,27 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MaterialModule } from './material/material.module';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { TextFilterPipe } from './pipes/text-filter.pipe';
 
 
 
 @NgModule({
   declarations: [
+    TextFilterPipe
   ],
   imports: [
     CommonModule,
+    FormsModule,
     MaterialModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
   ],
   exports: [
     CommonModule,
+    FormsModule,
     MaterialModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    TextFilterPipe
   ]
 })
 export class SharedModule { }

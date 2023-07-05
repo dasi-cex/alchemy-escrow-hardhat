@@ -13,9 +13,10 @@ import { MatDialogRef } from '@angular/material/dialog';
 export class AllContractsDialogComponent implements OnInit {
 
   contracts$!: Observable<ContractRecord[]>;
+  searchText!: string; // Used in the template search bar
 
   constructor(
-    private firebaseService: FirebaseService,
+    public firebaseService: FirebaseService,
     private dialogRef: MatDialogRef<AllContractsDialogComponent>
   ) {}
 

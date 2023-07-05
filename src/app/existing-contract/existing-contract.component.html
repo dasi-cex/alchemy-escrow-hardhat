@@ -18,13 +18,13 @@
       </div>
     </div>
     <div *ngIf="!(evmService.existingContractProperties$())" class="no-contract-deployed-message" >
-      <p>No contract deployed. Create a new contract using the New Contract Form to continue.</p>
+      <p>No contract deployed. Create a new contract using the New Contract Form or select one from the archive.</p>
     </div>
     <div *ngIf="evmService.approveEscrowError$()" class="approve-escrow-error-message" >
       {{ evmService.approveEscrowError$() }}
     </div>
   </div>
   <div *ngIf="!evmService.approveEscrowProcessing$()" class="bottom-content">
-    <button mat-stroked-button color="primary" (click)="onViewAllContracts()">View All Contracts</button>
+    <button mat-stroked-button color="primary" (click)="onViewAllContracts()">View Archive</button>
   </div>
 </div>

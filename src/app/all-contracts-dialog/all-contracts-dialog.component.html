@@ -1,8 +1,15 @@
 <div class="content-container">
   <h1>Escrow Contract Archive</h1>
+  <mat-form-field *ngIf="(contracts$ | async)" appearance="outline" class="search-bar">
+    <input matInput [(ngModel)]="searchText" placeholder="Filter by contract address...">
+  </mat-form-field>
   <div class="contracts-list">
-    <div *ngFor="let contract of contracts$ | async" class="contract" (click)="onSelectContract(contract)">
+    <div *ngFor="let contract of ((contracts$ | async) | textFilter: searchText)" class="contract" (click)="onSelectContract(contract)">
       {{ contract.address.substring(0,6) }}... {{ contract.address.slice(contract.address.length - 6, contract.address.length) }} | {{ contract.value }} ETH | Approved: {{ contract.approved ? 'Yes' : 'No' }}
     </div>
+  </div>
+  <div *ngIf="firebaseService.fetchDeployedContractsProcessing$()" class="fetch-contracts-processing-message">
+    <mat-spinner></mat-spinner>
+    Fetching contracts...
   </div>
 </div>

@@ -4,7 +4,6 @@ import { BigNumber, ethers } from 'ethers';
 import Escrow from '../artifacts/contracts/Escrow.sol/Escrow.json';
 import { ContractProperties } from 'shared-models/contracts/contract-properties.model';
 import { FirebaseService } from './firebase.service';
-import { take, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +15,6 @@ export class EvmService {
 
   approveEscrowError$ = signal<string | undefined>(undefined);
   approveEscrowProcessing$ = signal<boolean>(false);
-  approveEscrowSuccessful$ = signal<boolean>(false);
 
   deployContractError$ = signal<string | undefined>(undefined);
   deployContractProcessing$ = signal<boolean>(false);
@@ -35,6 +33,7 @@ export class EvmService {
   // Deploys the contract and adds it to the database
   async deployContract(arbiter: string, beneficiary: string, value: BigNumber) {
     this.deployContractError$.set(undefined);
+    this.deployContractSuccessful$.set(false);
     this.deployContractProcessing$.set(true);
 
     const factory = new ethers.ContractFactory(Escrow.abi, Escrow.bytecode, this.currentProvider$()!.getSigner());
@@ -98,7 +97,6 @@ export class EvmService {
   resetContractState() {
     this.approveEscrowError$.set(undefined);
     this.approveEscrowProcessing$.set(false);
-    this.approveEscrowSuccessful$.set(false);
 
     this.deployContractError$.set(undefined);
     this.deployContractProcessing$.set(false);
@@ -173,7 +171,6 @@ export class EvmService {
       this.ngZone.run(() => {
         console.log('Contract emitted the Approved event!', balance);
         this.approveEscrowProcessing$.set(false);
-        this.approveEscrowSuccessful$.set(true);
       });
       await this.fetchContractProperties(contract.address);
       const updatedContract: Partial<ContractProperties> = {

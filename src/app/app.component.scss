@@ -20,7 +20,8 @@
 }
 
 .contract-components {
-  padding: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -37,10 +38,7 @@
 @media (max-width: 800px) {
 
   .contract-components {
+    flex-direction: column;
     gap: 16px;
-  }
-
-  .account-components {
-    width: auto;
   }
 }
